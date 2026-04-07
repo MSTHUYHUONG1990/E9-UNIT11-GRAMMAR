@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trắc nghiệm Tiếng Anh 9</title>
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:linear-gradient(120deg,#4facfe,#00f2fe);
+}
+.container{
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+    background:white;
+    border-radius:12px;
+    margin-top:20px;
+}
+h1{text-align:center;}
+input,button{
+    padding:10px;
+    margin:5px 0;
+    width:100%;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+button{
+    background:#4facfe;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+button:hover{background:#007bff;}
+.question{
+    margin-bottom:15px;
+    padding:10px;
+    border-bottom:1px solid #ddd;
+}
+.result{
+    font-weight:bold;
+}
+.correct{color:green;}
+.wrong{color:red;}
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+@media(max-width:600px){
+    .container{padding:10px;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container" id="startScreen">
+<h1>TRẮC NGHIỆM TIẾNG ANH 9</h1>
+<input id="name" placeholder="Nhập họ tên">
+<input id="class" placeholder="Nhập lớp">
+<button onclick="startQuiz()">Bắt đầu</button>
+</div>
+
+<div class="container" id="quizScreen" style="display:none;">
+<h2>Làm bài</h2>
+<form id="quizForm"></form>
+<button onclick="submitQuiz()">Nộp bài</button>
+</div>
+
+<div class="container" id="resultScreen" style="display:none;">
+<h2>Kết quả</h2>
+<div id="score"></div>
+<div id="detail"></div>
+<button onclick="location.reload()">Làm lại</button>
+<button onclick="clearTable()">Xóa bảng tổng hợp</button>
+
+<h3>Bảng tổng hợp</h3>
+<table>
+<thead>
+<tr>
+<th>STT</th>
+<th>Họ tên</th>
+<th>Lớp</th>
+<th>Đúng</th>
+<th>Điểm</th>
+<th>Thời gian</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+
+<script>
+// TẠO 100 CÂU HỎI
+const questions=[];
+for(let i=1;i<=100;i++){
+    questions.push({
+        q:`Câu ${i}: Choose the correct sentence`,
+        options:[
+            "I suggest going to school early.",
+            "I suggest to go to school early.",
+            "I suggest go to school early.",
+            "I suggest went to school early."
+        ],
+        answer:0
+    });
+}
+
+// TRỘN CÂU HỎI (cho đa dạng)
+questions.sort(()=>Math.random()-0.5);
+
+// HIỂN THỊ
+function startQuiz(){
+    const name=document.getElementById("name").value;
+    const className=document.getElementById("class").value;
+    if(!name||!className){
+        alert("Nhập đầy đủ thông tin!");
+        return;
+    }
+    localStorage.setItem("currentName",name);
+    localStorage.setItem("currentClass",className);
+
+    document.getElementById("startScreen").style.display="none";
+    document.getElementById("quizScreen").style.display="block";
+
+    const form=document.getElementById("quizForm");
+    questions.forEach((q,i)=>{
+        let html=`<div class="question">
+        <p>${q.q}</p>`;
+        q.options.forEach((opt,j)=>{
+            html+=`<label>
+            <input type="radio" name="q${i}" value="${j}">
+            ${String.fromCharCode(65+j)}. ${opt}
+            </label><br>`;
+        });
+        html+=`</div>`;
+        form.innerHTML+=html;
+    });
+}
+
+// NỘP BÀI
+function submitQuiz(){
+    let correct=0;
+    let detailHTML="";
+    questions.forEach((q,i)=>{
+        const ans=document.querySelector(`input[name="q${i}"]:checked`);
+        if(ans){
+            if(parseInt(ans.value)===q.answer){
+                correct++;
+                detailHTML+=`<p class="correct">Câu ${i+1}: Đúng</p>`;
+            }else{
+                detailHTML+=`<p class="wrong">Câu ${i+1}: Sai (Đáp án: ${String.fromCharCode(65+q.answer)})</p>`;
+            }
+        }else{
+            detailHTML+=`<p class="wrong">Câu ${i+1}: Chưa chọn</p>`;
+        }
+    });
+
+    const score=(correct/100*10).toFixed(2);
+
+    document.getElementById("quizScreen").style.display="none";
+    document.getElementById("resultScreen").style.display="block";
+
+    document.getElementById("score").innerHTML=
+        `Đúng: ${correct}/100 | Điểm: ${score}`;
+
+    document.getElementById("detail").innerHTML=detailHTML;
+
+    saveResult(correct,score);
+    loadTable();
+}
+
+// LƯU KẾT QUẢ
+function saveResult(correct,score){
+    let data=JSON.parse(localStorage.getItem("results")||"[]");
+    data.push({
+        name:localStorage.getItem("currentName"),
+        class:localStorage.getItem("currentClass"),
+        correct,
+        score,
+        time:new Date().toLocaleString()
+    });
+    localStorage.setItem("results",JSON.stringify(data));
+}
+
+// HIỂN THỊ BẢNG
+function loadTable(){
+    let data=JSON.parse(localStorage.getItem("results")||"[]");
+    let html="";
+    data.forEach((d,i)=>{
+        html+=`<tr>
+        <td>${i+1}</td>
+        <td>${d.name}</td>
+        <td>${d.class}</td>
+        <td>${d.correct}</td>
+        <td>${d.score}</td>
+        <td>${d.time}</td>
+        </tr>`;
+    });
+    document.getElementById("tableBody").innerHTML=html;
+}
+
+// XÓA BẢNG
+function clearTable(){
+    localStorage.removeItem("results");
+    loadTable();
+}
+</script>
+
+</body>
+</html>
